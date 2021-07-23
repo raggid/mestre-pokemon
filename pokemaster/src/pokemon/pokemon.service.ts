@@ -1,26 +1,38 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { CreatePokemonDto } from './dto/create-pokemon.dto';
 import { UpdatePokemonDto } from './dto/update-pokemon.dto';
+import { Pokemon, PokemonDocument } from './entities/pokemon.entity';
 
 @Injectable()
 export class PokemonService {
-  create(createPokemonDto: CreatePokemonDto) {
-    return 'This action adds a new pokemon';
+
+  constructor(@InjectModel(Pokemon.name) private pokemonModel: Model<PokemonDocument>) { }
+
+  async create(pokemon: CreatePokemonDto) {
+    const createdPokemon = new this.pokemonModel(pokemon);
+    return createdPokemon.save()
   }
 
-  findAll() {
-    return `This action returns all pokemon`;
+  async findAll() {
+    return await this.pokemonModel.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} pokemon`;
+  async findOne(id: string) {
+    return this.pokemonModel.findOne({ _id: id });
   }
 
-  update(id: number, updatePokemonDto: UpdatePokemonDto) {
-    return `This action updates a #${id} pokemon`;
+  async update(id: string, updatePokemonDto: UpdatePokemonDto) {
+    const existingPokemon = await this.pokemonModel.findByIdAndUpdate(id, updatePokemonDto);
+    if (!existingPokemon) {
+      throw new NotFoundException(`Pokemon #${id} not found`);
+    }
+    return existingPokemon;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} pokemon`;
+  async remove(id: string) {
+    const deletedPokemon = await this.pokemonModel.findByIdAndRemove(id);
+    return deletedPokemon;
   }
 }
